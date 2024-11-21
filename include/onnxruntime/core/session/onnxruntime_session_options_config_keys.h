@@ -199,6 +199,7 @@ static const char* const kNodePartitionConfigFile = "session.node_partition_conf
 
 /// "number > 0": enables Capacity Aware Partitioning for Cuda EP. The EP will place nodes on device
 /// "0" : disables Capacity Aware Partitioning for Cuda EP. The EP will place nodes on device based on the default policy.
+/// "auto": means automatic resource accounting and threshold
 ///  until the device memory usage reaches the specified threshold in Kb. The default value is 0.
 static const char* const kOrtSessionOptionsConfigPartitionSetCudaMemoryLimitKb = "session.node_partition_cuda_memory_limit_kb";
 

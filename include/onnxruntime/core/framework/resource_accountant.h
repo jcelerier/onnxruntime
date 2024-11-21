@@ -37,11 +37,19 @@ class IResourceAccountant {
   virtual void AddConsumedAmount(const ResourceCount& amount) = 0;
   virtual void RemoveConsumedAmount(const ResourceCount& amount) = 0;
   virtual ResourceCount ComputeResourceCount(const Graph&, size_t node_index) const = 0;
+
   std::optional<ResourceCount> GetThreshold() const {
     return threshold_;
   }
 
+  void SetStopAssignment() {
+    stop_assignment_ = true;
+  }
+
+  bool IsStopIssued() const noexcept { return stop_assignment_; }
+
  private:
+  bool stop_assignment_ = false;
   std::optional<ResourceCount> threshold_;
 };
 

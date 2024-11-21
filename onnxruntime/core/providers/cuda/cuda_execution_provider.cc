@@ -2582,6 +2582,11 @@ CUDAExecutionProvider::GetCapability(const onnxruntime::GraphViewer& graph,
   size_t memory_threshold = std::numeric_limits<size_t>::max();
   SafeInt<size_t> consumed_memory = 0;
   if (resource_accountant != nullptr) {
+    if (resource_accountant->IsStopIssued()) {
+      LOGS(logger, WARNING) << "CUDA_EP returning due to Stop Set";
+      return result;
+    }
+
     auto threshold = resource_accountant->GetThreshold();
     if (!threshold.has_value()) {
       // info_.gpu_mem_limit is for BFC arena
@@ -2596,11 +2601,6 @@ CUDAExecutionProvider::GetCapability(const onnxruntime::GraphViewer& graph,
     }
 
     consumed_memory = std::get<0>(resource_accountant->GetConsumedAmount());
-    // Return early if already over the limit
-    if (static_cast<size_t>(consumed_memory) > memory_threshold) {
-      LOGS(logger, INFO) << "CUDA EP returning early due to capacity threshold";
-      return result;
-    }
   }
 
   InlinedHashSet<NodeIndex> previously_assigned_nodes;
@@ -2677,15 +2677,22 @@ CUDAExecutionProvider::GetCapability(const onnxruntime::GraphViewer& graph,
 
     // Previously assigned nodes have been accounted before
     if (previously_assigned_nodes.count(node_index) > 0 || resource_accountant == nullptr) {
+      // XXX: For demo only
+      constexpr const size_t kNodeCountThreshold = 800;
+      static std::atomic_size_t nodes_assigned = 0;
+      if (nodes_assigned.fetch_add(1) > kNodeCountThreshold) {
+        ORT_THROW("CUDA EP is running out of memory");
+      }
+      /// XXX: End of DEMO
       auto sub_graph = IndexedSubGraph::Create();
       sub_graph->Nodes().push_back(node_index);
       result.push_back(ComputeCapability::Create(std::move(sub_graph)));
     } else {
       auto resource_count = std::get<0>(resource_accountant->ComputeResourceCount(graph.GetGraph(), node_index));
       const auto would_be_consumed = resource_count + consumed_memory;
-      LOGS(logger, VERBOSE) << "Node: " << node_index << " Memory usage : " << resource_count
-                            << " would be consumed " << static_cast<size_t>(would_be_consumed)
-                            << " threshold: " << memory_threshold;
+      LOGS(logger, INFO) << "CUDA_EP Node: " << node_index << " Memory usage : " << resource_count
+                         << " would be consumed " << static_cast<size_t>(would_be_consumed)
+                         << " threshold: " << memory_threshold;
       if (would_be_consumed < memory_threshold) {
         consumed_memory = would_be_consumed;
         auto sub_graph = IndexedSubGraph::Create();
@@ -2697,9 +2704,10 @@ CUDAExecutionProvider::GetCapability(const onnxruntime::GraphViewer& graph,
         // We break here so we do not have patches of CUDA assigned nodes.
         auto* node = graph.GetNode(node_index);
         if (node != nullptr) {
-          LOGS(logger, INFO) << "CUDA EP Halting assignment due to capacity threshold at node: "
-                             << node->Name() << " index: " << node_index;
+          LOGS(logger, WARNING) << "CUDA_EP Halting assignment due to capacity threshold at node: "
+                                << node->Name() << " index: " << node_index;
         }
+        resource_accountant->SetStopAssignment();
         break;
       }
     }
