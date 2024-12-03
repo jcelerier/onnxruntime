@@ -571,6 +571,8 @@ HashValue TRTGenerateId(const GraphViewer& graph_viewer, std::string trt_version
       }
     }
   }
+  
+  LOGS_DEFAULT(VERBOSE) << "[TensorRT EP] Init graph hash: " << hash[0] | (uint64_t(hash[1]) << 32);
 
 #ifdef __linux__
   hash_str("LINUX");
@@ -592,6 +594,8 @@ HashValue TRTGenerateId(const GraphViewer& graph_viewer, std::string trt_version
 
   model_hash = hash[0] | (uint64_t(hash[1]) << 32);
 
+  LOGS_DEFAULT(VERBOSE) << "[TensorRT EP] Model hash: " << model_hash << " @ ORT " << ORT_VERSION << " TRT " << trt_version << " CUDA " << cuda_version;
+  
   // return the current unique id
   return model_hash;
 }
