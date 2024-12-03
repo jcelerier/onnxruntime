@@ -571,8 +571,8 @@ HashValue TRTGenerateId(const GraphViewer& graph_viewer, std::string trt_version
       }
     }
   }
-  
-  LOGS_DEFAULT(VERBOSE) << "[TensorRT EP] Init graph hash: " << hash[0] | (uint64_t(hash[1]) << 32);
+  HashValue init_hash = hash[0] | (uint64_t(hash[1]) << 32);
+  LOGS_DEFAULT(VERBOSE) << "[TensorRT EP] Init graph hash: " << init_hash;
 
 #ifdef __linux__
   hash_str("LINUX");
