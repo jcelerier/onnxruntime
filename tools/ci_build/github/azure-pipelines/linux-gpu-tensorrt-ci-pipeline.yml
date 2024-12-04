@@ -34,6 +34,10 @@ parameters:
     values:
       - 11.8
       - 12.2
+  - name: UseCudaMinimalBuild
+    displayName: Use Cuda Minimal Build
+    type: string
+    default: 'OFF'
 
 variables:
   - name: docker_base_image
@@ -100,7 +104,7 @@ jobs:
                   -e NIGHTLY_BUILD \
                   -e BUILD_BUILDNUMBER \
                   -e CCACHE_DIR=/cache -w /onnxruntime_src \
-                  onnxruntimetensorrt86gpubuild tools/ci_build/github/linux/build_tensorrt_ci.sh
+                  onnxruntimetensorrt86gpubuild tools/ci_build/github/linux/build_tensorrt_ci.sh --cuda_minimal=${{ parameters.UseCudaMinimalBuild }}
             workingDirectory: $(Build.SourcesDirectory)
 
   - template: templates/explicitly-defined-final-tasks.yml
